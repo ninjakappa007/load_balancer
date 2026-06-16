@@ -1,33 +1,19 @@
-import subprocess
+import uvicorn
+from fastapi import FastAPI, Request
 from concurrent.futures import ThreadPoolExecutor
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-SERVER_PORT_LIST = [8001, 8002, 8003, 8004]
 
 
-class CustomBackendHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        current_port = self.server.server_address[1]
+app = FastAPI()
+SERVER_PORT_LIST = [8001, 8002, 8004]
 
-        custom_message = f"Hello! This response is dynamically generated from Backend Port: {current_port}\n"
-        response_bytes = custom_message.encode('utf-8')
-
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain")
-        self.send_header("Content-Length", str(len(response_bytes)))
-        self.end_headers()
-
-        self.wfile.write(response_bytes)
-
-    def log_message(self, format, *args):
-        pass
-
+@app.get('/{full_path:path}')
+def read_root(request : Request, full_path: str):
+    _, server_port = request.scope.get("server", (None, None))
+    return {'message' : f'Hello! This response is dynamically generated from Backend Path : {full_path} and Port: {server_port} '}
 
 def run_custom_server(port: int):
-    server = HTTPServer(("127.0.0.1", port), CustomBackendHandler) # type: ignore
-    print(f"Backend worker successfully listening on port {port}...")
-    server.serve_forever()
-
+    print(f"Starting server on port {port}...")
+    uvicorn.run(app, host="127.0.0.1", port=port, reload=False)
 
 
 if __name__ == '__main__':
